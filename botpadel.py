@@ -4,7 +4,9 @@ from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import psycopg2
+import psycopg
+conn = psycopg.connect(DATABASE_URL)
+cursor = conn.cursor()
 from dotenv import load_dotenv
 import asyncio
 
