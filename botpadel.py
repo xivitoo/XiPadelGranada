@@ -6,6 +6,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import psycopg2
 from dotenv import load_dotenv
+import asyncio
 
 # ------------------- CONFIG -------------------
 load_dotenv()
@@ -16,8 +17,7 @@ logging.basicConfig(level=logging.INFO)
 
 conn = psycopg2.connect(DATABASE_URL)
 cursor = conn.cursor()
-scheduler = AsyncIOScheduler()
-scheduler.start()
+scheduler = AsyncIOScheduler()  # Creamos el scheduler pero no lo iniciamos aún
 
 # ------------------- UTILIDADES -------------------
 niveles = {
@@ -129,7 +129,6 @@ async def mensaje_partido(update: Update, context: ContextTypes.DEFAULT_TYPE):
             id_partido = cursor.fetchone()[0]
             conn.commit()
 
-            # Crear botones usando ID interno
             botones = [
                 [InlineKeyboardButton("Unirse", callback_data=f"unirse_{id_partido}")],
                 [InlineKeyboardButton("Salir", callback_data=f"salir_{id_partido}")],
@@ -138,7 +137,6 @@ async def mensaje_partido(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
             markup = InlineKeyboardMarkup(botones)
 
-            # Enviar mensaje sin mostrar la ID
             await update.message.reply_text(
                 f"Partido creado!\n"
                 f"Nivel: {partido_temporal[user_id]['nivel']}\n"
@@ -172,7 +170,7 @@ async def consultar_partidos(update: Update, context: ContextTypes.DEFAULT_TYPE)
             texto += f"- Hora: {hora_inicio} - {hora_fin} | Lugar: {lugar}\n"
     await update.message.reply_text(texto)
 
-# ------------------- CALLBACK QUERY PARA BOTONES -------------------
+# ------------------- CALLBACKS -------------------
 async def boton_partido(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -249,10 +247,8 @@ async def boton_evaluacion(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
-    accion, id_partido, jugador_id = data.split("_")[0], int(data.split("_")[1]), int(data.split("_")[2])
-
-    if "eval" in query.data:
-        subaccion = query.data.split("_")[1]
+    if "eval" in data:
+        subaccion, id_partido, jugador_id = data.split("_")[1], int(data.split("_")[2]), int(data.split("_")[3])
         if subaccion == "si":
             ejecutar("INSERT INTO evaluaciones (id_partido,jugador_id,marca_conforme) VALUES (%s,%s,TRUE)", (id_partido, jugador_id))
             await query.edit_message_text("Gracias! Se ha registrado que el nivel coincidió.")
@@ -270,8 +266,7 @@ async def boton_evaluacion(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def boton_marca(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    data = query.data
-    _, tipo, id_partido, evaluado_id = data.split("_")
+    _, tipo, id_partido, evaluado_id = query.data.split("_")
     id_partido = int(id_partido)
     evaluado_id = int(evaluado_id)
 
@@ -301,11 +296,17 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_registro))
 
 # Partidos
-app.add_handler(CommandHandler("crear_partido", crear_partido))
+app.add_handler(CommandHandler("Crear", crear_partido))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_partido))
-app.add_handler(CommandHandler("partidos_hoy", consultar_partidos))
+app.add_handler(CommandHandler("PartidosHoy", consultar_partidos))
 app.add_handler(CallbackQueryHandler(boton_partido, pattern=r"^(unirse|salir|cancelar|confirmar)_"))
 app.add_handler(CallbackQueryHandler(boton_evaluacion, pattern=r"^eval_"))
 app.add_handler(CallbackQueryHandler(boton_marca, pattern=r"^marcar_"))
 
-app.run_polling()
+# ------------------- MAIN -------------------
+async def main():
+    scheduler.start()  # Se inicia el scheduler aquí, con loop activo
+    await app.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
