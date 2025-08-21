@@ -308,10 +308,6 @@ app.add_handler(CallbackQueryHandler(boton_evaluacion, pattern=r"^eval_"))
 app.add_handler(CallbackQueryHandler(boton_marca, pattern=r"^marcar_"))
 
 # ------------------- MAIN -------------------
-async def main():
-    scheduler.start()  # loop activo
-    await app.run_polling()
-
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    scheduler.start()  # inicia el scheduler aquí, en el loop activo
+    app.run_polling()  # no uses asyncio.run()
