@@ -8,11 +8,9 @@ import psycopg
 DATABASE_URL = os.getenv("DATABASE_URL")
 conn = psycopg.connect(DATABASE_URL)
 cursor = conn.cursor()
-from dotenv import load_dotenv
 import asyncio
 
 # ------------------- CONFIG -------------------
-load_dotenv()
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
