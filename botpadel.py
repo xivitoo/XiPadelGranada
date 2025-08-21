@@ -5,6 +5,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import psycopg
+DATABASE_URL = os.getenv("DATABASE_URL")
 conn = psycopg.connect(DATABASE_URL)
 cursor = conn.cursor()
 from dotenv import load_dotenv
