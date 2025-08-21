@@ -43,7 +43,7 @@ def es_nivel_compatible(nivel_jugador, nivel_partido):
     return abs(nivel_jugador - nivel_partido) <= 0.5
 
 # ------------------- BOT -------------------
-TOKEN = os.environ.get("BOT_TOKEN")
+TOKEN = os.environ.get("TELEGRAM_TOKEN")
 scheduler = AsyncIOScheduler()
 scheduler.start()
 
