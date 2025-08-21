@@ -214,7 +214,13 @@ if __name__ == "__main__":
     # Arrancar Flask en hilo aparte
     threading.Thread(target=run_flask, daemon=True).start()
 
-    # Usar loop existente de asyncio
-    loop = asyncio.get_event_loop()
+    # Obtener loop de asyncio existente
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    # Crear tarea para el bot
     loop.create_task(main())
     loop.run_forever()
