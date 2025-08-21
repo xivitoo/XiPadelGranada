@@ -1,6 +1,7 @@
 import os
 import psycopg2
 import asyncio
+import threading
 from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -12,6 +13,7 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
+from flask import Flask
 
 # ------------------- CONEXIÓN A LA BASE DE DATOS -------------------
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -25,6 +27,10 @@ def fetchone(query, params=None):
 def fetchall(query, params=None):
     cursor.execute(query, params or ())
     return cursor.fetchall()
+
+def ejecutar(query, params=None):
+    cursor.execute(query, params or ())
+    conn.commit()
 
 # ------------------- FUNCIONES DE NIVELES -------------------
 def nivel_a_num(nivel: str) -> float:
@@ -49,11 +55,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if jugador:
         await update.message.reply_text("Ya estás registrado ✅")
     else:
-        cursor.execute(
+        ejecutar(
             "INSERT INTO jugadores (id_telegram, nombre, nivel_num) VALUES (%s,%s,%s)",
-            (user_id, nombre, 3.0),
+            (user_id, nombre, 3.0)
         )
-        conn.commit()
         await update.message.reply_text("Te has registrado con nivel 3.0 ✅")
 
 # ------------------- CREAR PARTIDOS -------------------
@@ -169,16 +174,30 @@ async def consultar_partidos(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def enviar_evaluacion(id_partido):
     jugadores = fetchall("SELECT unnest(jugadores) FROM partidos WHERE id_partido=%s", (id_partido,))
     for (jugador,) in jugadores:
-        # Aquí se podría enviar mensaje de evaluación al jugador
         print(f"Enviar evaluación a {jugador} del partido {id_partido}")
+
+# ------------------- FLASK KEEP-ALIVE -------------------
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def home():
+    return "Bot running!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    flask_app.run(host="0.0.0.0", port=port)
 
 # ------------------- MAIN -------------------
 async def main():
+    # Arrancar Flask en hilo aparte
+    threading.Thread(target=run_flask).start()
+
+    # Aplicación Telegram
     app = Application.builder().token(TOKEN).build()
 
-    app.add_handler(CommandHandler("Registro", start))
-    app.add_handler(CommandHandler("Crear", crear_partido))
-    app.add_handler(CommandHandler("Buscar", consultar_partidos))
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("crear_partido", crear_partido))
+    app.add_handler(CommandHandler("partidos", consultar_partidos))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_partido))
 
     await app.run_polling()
