@@ -211,4 +211,10 @@ async def main():
     await app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Arrancar Flask en hilo aparte
+    threading.Thread(target=run_flask, daemon=True).start()
+
+    # Usar loop existente de asyncio
+    loop = asyncio.get_event_loop()
+    loop.create_task(main())
+    loop.run_forever()
