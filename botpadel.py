@@ -2,7 +2,10 @@ import os
 import logging
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, MessageHandler,
+    CallbackQueryHandler, ContextTypes, filters
+)
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import psycopg
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -306,8 +309,9 @@ app.add_handler(CallbackQueryHandler(boton_marca, pattern=r"^marcar_"))
 
 # ------------------- MAIN -------------------
 async def main():
-    scheduler.start()  # Se inicia el scheduler aquí, con loop activo
+    scheduler.start()  # loop activo
     await app.run_polling()
 
 if __name__ == "__main__":
+    import asyncio
     asyncio.run(main())
