@@ -101,7 +101,7 @@ async def mensaje_partido(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif paso == "precio":
         partido_temporal[user_id]["precio"] = texto
 
-        # Guardar en DB
+        # Guardar en DB y obtener ID
         nivel_num = nivel_a_num(partido_temporal[user_id]["nivel"])
         cursor.execute(
             """
@@ -138,7 +138,7 @@ async def mensaje_partido(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=markup,
         )
 
-        # Programar evaluación
+        # Programar evaluación 1h después del partido
         hora_fin_dt = datetime.strptime(partido_temporal[user_id]['hora_fin'], "%Y-%m-%d %H:%M")
         scheduler.add_job(enviar_evaluacion, 'date', run_date=hora_fin_dt + timedelta(hours=1), args=[id_partido])
 
@@ -174,7 +174,15 @@ async def consultar_partidos(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def enviar_evaluacion(id_partido):
     jugadores = fetchall("SELECT unnest(jugadores) FROM partidos WHERE id_partido=%s", (id_partido,))
     for (jugador,) in jugadores:
-        print(f"Enviar evaluación a {jugador} del partido {id_partido}")
+        try:
+            botones = [
+                [InlineKeyboardButton("Sí", callback_data=f"eval_si_{id_partido}_{jugador}")],
+                [InlineKeyboardButton("No", callback_data=f"eval_no_{id_partido}_{jugador}")]
+            ]
+            markup = InlineKeyboardMarkup(botones)
+            await app.bot.send_message(chat_id=jugador, text="¿El nivel del partido coincidió con lo indicado?", reply_markup=markup)
+        except:
+            continue
 
 # ------------------- FLASK KEEP-ALIVE -------------------
 flask_app = Flask(__name__)
@@ -192,12 +200,12 @@ async def main():
     # Arrancar Flask en hilo aparte
     threading.Thread(target=run_flask).start()
 
-    # Aplicación Telegram
+    global app
     app = Application.builder().token(TOKEN).build()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("crear_partido", crear_partido))
-    app.add_handler(CommandHandler("partidos", consultar_partidos))
+    app.add_handler(CommandHandler("Registro", start))
+    app.add_handler(CommandHandler("Crear", crear_partido))
+    app.add_handler(CommandHandler("Buscar", consultar_partidos))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_partido))
 
     await app.run_polling()
