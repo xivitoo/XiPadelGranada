@@ -85,6 +85,18 @@ async def boton_registro(update: Update, context: ContextTypes.DEFAULT_TYPE):
         del registro_temporal[user_id]
 
 # ------------------- CREAR PARTIDO -------------------
+
+async def mensaje(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    texto = update.message.text
+
+    if user_id in registro_temporal:
+        await mensaje_registro(update, context)
+    elif user_id in partido_temporal:
+        await mensaje_partido(update, context)
+    else:
+        await update.message.reply_text("Usa /start para registrarte o /crear_partido para crear un partido.")
+
 async def crear_partido(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     partido_temporal[user_id] = {"paso": "nivel"}
@@ -220,6 +232,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("crear_partido", crear_partido))
     app.add_handler(CommandHandler("partidos", consultar_partidos))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_partido))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje))
 
     # Ejecutar polling sin asyncio.run()
     import asyncio
