@@ -208,4 +208,21 @@ async def main():
     await app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Arrancar Flask en hilo aparte
+    import threading
+    threading.Thread(target=run_flask, daemon=True).start()
+
+    # Crear bot
+    app = Application.builder().token(TOKEN).build()
+
+    # Handlers
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("crear_partido", crear_partido))
+    app.add_handler(CommandHandler("partidos", consultar_partidos))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mensaje_partido))
+
+    # Ejecutar polling sin asyncio.run()
+    import asyncio
+    loop = asyncio.get_event_loop()
+    loop.create_task(app.run_polling())
+    loop.run_forever()
