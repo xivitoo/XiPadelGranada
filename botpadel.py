@@ -16,7 +16,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 logging.basicConfig(level=logging.INFO)
 
-conn = psycopg2.connect(DATABASE_URL)
+conn = psycopg.connect(DATABASE_URL)
 cursor = conn.cursor()
 scheduler = AsyncIOScheduler()  # Creamos el scheduler pero no lo iniciamos aún
 
