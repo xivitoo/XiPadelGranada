@@ -7,7 +7,9 @@ from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
+    MessageHandler,       
     ContextTypes,
+    filters               
 )
 from flask import Flask, request, jsonify
 
